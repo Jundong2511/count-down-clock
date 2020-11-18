@@ -1,3 +1,4 @@
+import { number } from "prop-types";
 import React from "react";
 import ReactDOM, { render } from "react-dom";
 import "./index.css";
@@ -47,6 +48,7 @@ class Main extends React.Component {
             timeLeftSecond: "00",
             nextBreak: true,
             sessionOrBreak: "Session",
+            switch: false,
         }
         this.handleBreakDecrementClick = this.handleBreakDecrementClick.bind(this)
         this.handleBreakIncrementClick = this.handleBreakIncrementClick.bind(this)
@@ -54,7 +56,9 @@ class Main extends React.Component {
         this.handleSessionIncrementClick = this.handleSessionIncrementClick.bind(this)
         this.handleStartStopClick = this.handleStartStopClick.bind(this)
         this.handleResetClick = this.handleResetClick.bind(this)
+        this.addZero = this.addZero.bind(this)
     }
+    addZero = (number) => number < 10 ? `0${number}` : number;
     handleBreakDecrementClick() {
         if (this.state.break > 1 && this.state.onSession === true)
             this.setState({
@@ -74,6 +78,7 @@ class Main extends React.Component {
             if (this.state.onSession === true)
                 this.setState({
                     session: this.state.session + 1,
+                    timeLeftMinutes: this.state.session + 1
                 })
         }
     }
@@ -81,15 +86,17 @@ class Main extends React.Component {
         if (this.state.session > 1 && this.state.onSession === true)
             this.setState({
                 session: this.state.session - 1,
+                timeLeftMinutes: this.state.session - 1
             })
     }
+
     // every second timeLeftSecond -1, when it reachs 00, become 59, timeLeftSecond -1, if reach 00:00, call audio play, set break to timeLeft, call this function again
     handleStartStopClick() {
         // if play is true, click is play, otherwise is pause // when click, play is true
         console.log("play clicked")
         if (this.state.onSession === true) {
             this.setState({
-                timeLeftMinutes: ("0" + (this.state.session).toString()).slice(-2),
+                timeLeftMinutes: this.addZero(this.state.session),
                 onSession: false,
             })
         }
@@ -104,7 +111,8 @@ class Main extends React.Component {
                     if (this.state.timeLeftSecond > 0) {
 
                         this.setState({
-                            timeLeftSecond: ("0" + (this.state.timeLeftSecond - 1).toString()).slice(-2)
+                            timeLeftSecond: this.addZero(this.state.timeLeftSecond - 1),
+                            switch: false,
                         })
                         console.log("first running" + this.state.timeLeftMinutes + ":" + this.state.timeLeftSecond)
                     }
@@ -112,28 +120,42 @@ class Main extends React.Component {
                         console.log("second running" + this.state.timeLeftMinutes + ":" + this.state.timeLeftSecond)
                         this.setState({
                             timeLeftSecond: 59,
-                            timeLeftMinutes: ("0" + (this.state.timeLeftMinutes - 1).toString()).slice(-2)
+                            timeLeftMinutes: this.addZero(this.state.timeLeftMinutes - 1),
+                            switch: false,
                         })
                     }
-                    if (this.state.timeLeftSecond == 0 && this.state.timeLeftMinutes == 0) {
+
+                    if (this.state.switch) {
+
                         if (this.state.nextBreak) {
-                            console.log("audio running" + this.state.timeLeftMinutes + ":" + this.state.timeLeftSecond)
-                            this.audio.play();
                             this.setState({
-                                timeLeftMinutes: ("0" + (this.state.break).toString()).slice(-2),
+                                timeLeftMinutes: this.addZero(this.state.break),
                                 timeLeftSecond: "00",
                                 nextBreak: !this.state.nextBreak,
-                                sessionOrBreak: "Session"
+                                sessionOrBreak: "Break",
+                                switch: false,
                             })
                         } else {
                             this.setState({
-                                timeLeftMinutes: ("0" + (this.state.session).toString()).slice(-2),
+                                timeLeftMinutes: this.addZero(this.state.session),
                                 timeLeftSecond: "00",
                                 nextBreak: !this.state.nextBreak,
-                                sessionOrBreak: "Break"
+                                sessionOrBreak: "Session",
+                                switch: false,
                             })
                         }
                     }
+                    if (this.state.timeLeftSecond == 0 && this.state.timeLeftMinutes == 0) {
+                        console.log("audio running" + this.state.timeLeftMinutes + ":" + this.state.timeLeftSecond)
+                        this.audio.play();
+                        this.setState({
+                            switch: true,
+                        })
+
+                    }
+
+
+
                 }, 1000);
             }
         }
@@ -149,14 +171,19 @@ class Main extends React.Component {
     }
     handleResetClick() {
         clearInterval(this.timerRunning)
+        this.audio.pause()
+        this.audio.currentTime = 0
         this.setState({
-            timeLeftMinutes: 25,
+            timeLeftMinutes: "25",
             timeLeftSecond: "00",
             session: 25,
             break: 5,
             play: true,
             onSession: true,
-            nextBreak: true
+            nextBreak: true,
+            switch: false,
+            sessionOrBreak: "Session",
+
         })
 
     }
